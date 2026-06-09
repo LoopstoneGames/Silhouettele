@@ -18,8 +18,6 @@ function AppRouter() {
 
   return (
     <div className="relative min-h-screen flex flex-col bg-background">
-      {/* Studio blueprint dot-grid backdrop */}
-      <div className="pointer-events-none fixed inset-0 bg-dots opacity-70" aria-hidden="true" />
       <div className="relative z-10 flex flex-col min-h-screen">
         {!isLoginPage && <Navbar />}
         <main className="flex-1 flex flex-col">

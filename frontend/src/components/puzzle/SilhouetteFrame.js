@@ -15,7 +15,7 @@ export const SilhouetteFrame = ({ silhouetteUrl, gameOver, building }) => (
           key={silhouetteUrl}
           src={silhouetteUrl}
           alt="Building silhouette"
-          className="max-w-full max-h-full object-contain animate-float-slow"
+          className="max-w-full max-h-full object-contain"
           data-testid="silhouette-image"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

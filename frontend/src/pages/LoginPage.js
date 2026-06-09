@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { logError } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import { Building2 } from "lucide-react";
 
 export default function LoginPage() {
   const { user } = useAuth();
@@ -26,9 +25,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-10">
         <div className="flex flex-col items-center gap-5">
-          <span className="grid place-items-center h-16 w-16 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 animate-float-slow">
-            <Building2 className="w-9 h-9" strokeWidth={2.5} />
-          </span>
+          <img src="/logo.svg" alt="Silhouettele" className="h-16 w-16 rounded-2xl shadow-lg" />
           <div className="text-center space-y-2">
             <p className="font-technical text-[10px] uppercase tracking-[0.35em] text-muted-foreground">Loopstone Games</p>
             <h1 className="font-heading font-black text-4xl sm:text-5xl tracking-tight">Silhouettele</h1>

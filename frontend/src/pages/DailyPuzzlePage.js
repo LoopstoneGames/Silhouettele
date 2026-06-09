@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Building2 } from "lucide-react";
 import { useDailyPuzzle } from "@/hooks/useDailyPuzzle";
 import { PuzzleHeader } from "@/components/puzzle/PuzzleHeader";
 import { SilhouetteFrame } from "@/components/puzzle/SilhouetteFrame";
@@ -33,7 +32,7 @@ export default function DailyPuzzlePage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Building2 className="w-10 h-10 animate-pulse text-primary" />
+        <img src="/logo.svg" alt="Silhouettele" className="w-12 h-12 animate-pulse" />
       </div>
     );
   }

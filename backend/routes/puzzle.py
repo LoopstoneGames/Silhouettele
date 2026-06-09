@@ -10,13 +10,6 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/puzzle", tags=["puzzle"])
 
-DIRECTION_EMOJIS = {
-    "N": "\u2191", "NNE": "\u2197", "NE": "\u2197", "ENE": "\u2197",
-    "E": "\u2192", "ESE": "\u2198", "SE": "\u2198", "SSE": "\u2198",
-    "S": "\u2193", "SSW": "\u2199", "SW": "\u2199", "WSW": "\u2199",
-    "W": "\u2190", "WNW": "\u2196", "NW": "\u2196", "NNW": "\u2196"
-}
-
 
 async def _update_user_stats(pool, user_id: str, guess_number: int, puzzle_date: str):
     await pool.execute(
@@ -61,6 +54,8 @@ async def _update_user_stats_failed(pool, user_id: str, puzzle_date: str):
     row = await pool.fetchrow("SELECT * FROM user_stats WHERE user_id = $1", user_id)
 
     last_date = row["last_solved_date"]
+    # last_solved_date is updated on both solves AND failures (see UPDATE below),
+    # so this check reliably prevents double-counting on repeated calls.
     already_recorded = last_date == puzzle_date
 
     if not already_recorded:
@@ -68,9 +63,10 @@ async def _update_user_stats_failed(pool, user_id: str, puzzle_date: str):
             """UPDATE user_stats SET
                puzzles_played = puzzles_played + 1,
                total_guesses = total_guesses + 6,
-               current_streak = 0
+               current_streak = 0,
+               last_solved_date = $2
                WHERE user_id = $1""",
-            user_id
+            user_id, puzzle_date
         )
 
 
@@ -96,6 +92,11 @@ async def get_today_puzzle(request: Request):
     guesses = [dict(r) for r in rows]
     is_solved = any(g["is_correct"] for g in guesses)
     is_failed = len(guesses) >= 6 and not is_solved
+
+    # Ensure failed stats are recorded even if the client never received the
+    # response to the 6th-guess POST (tab closed, network drop, etc.).
+    if is_failed and not user.get("is_guest"):
+        await _update_user_stats_failed(pool, user["user_id"], today)
 
     result = {
         "puzzle_date": today,
@@ -227,7 +228,7 @@ async def get_share_text(request: Request):
         if g["is_correct"]:
             lines.append("\u2705")
         else:
-            arrow = DIRECTION_EMOJIS.get(g.get("direction", ""), "?")
+            arrow = get_direction_arrow(g.get("direction", "")) or "?"
             dist = g.get("distance_km", 0)
             if dist < 500:
                 bar = "\u2588\u2588\u2588\u2588"
@@ -247,26 +248,35 @@ async def get_share_text(request: Request):
 async def get_puzzle_calendar(request: Request):
     user = await get_current_user(request)
     pool = get_pool()
-    dates = []
-    for i in range(30):
-        d = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
-        building_id = get_daily_building_id(d)
-        building = get_building_by_id(building_id)
-        rows = await pool.fetch(
-            "SELECT is_correct FROM guesses WHERE user_id = $1 AND puzzle_date = $2",
-            user["user_id"], d
-        )
-        user_guesses = [dict(r) for r in rows]
+
+    date_list = [
+        (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(30)
+    ]
+
+    rows = await pool.fetch(
+        "SELECT puzzle_date, is_correct FROM guesses WHERE user_id = $1 AND puzzle_date = ANY($2)",
+        user["user_id"], date_list
+    )
+    guesses_by_date: dict = {}
+    for r in rows:
+        guesses_by_date.setdefault(r["puzzle_date"], []).append(dict(r))
+
+    result = []
+    for d in date_list:
+        user_guesses = guesses_by_date.get(d, [])
         solved = any(g["is_correct"] for g in user_guesses)
         attempted = len(user_guesses) > 0
-        dates.append({
+        building_id = get_daily_building_id(d)
+        building = get_building_by_id(building_id)
+        result.append({
             "date": d,
             "building_name": building["name"] if (solved or (attempted and len(user_guesses) >= 6)) else None,
             "solved": solved,
             "attempted": attempted,
             "guesses_used": len(user_guesses),
         })
-    return dates
+    return result
 
 
 @router.get("/past/{date}")

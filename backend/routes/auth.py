@@ -63,6 +63,10 @@ async def register_user(request: Request):
         email
     )
     if existing_by_email:
+        # Require email verification before migrating the legacy account to
+        # prevent an attacker from claiming someone else's pre-migration row.
+        if not sb_user.get("email_confirmed_at"):
+            raise HTTPException(status_code=403, detail="Email address must be verified before account migration")
         await pool.execute(
             "UPDATE users SET supabase_uid = $1, name = $2, picture = $3 WHERE email = $4",
             supabase_uid, name, picture, email

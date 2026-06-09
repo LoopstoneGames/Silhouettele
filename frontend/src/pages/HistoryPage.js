@@ -40,7 +40,11 @@ export default function HistoryPage() {
 
   const handleSelectDate = (date) => {
     if (!date) return;
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
     setSelectedDate(dateStr);
     loadPastPuzzle(dateStr);
   };

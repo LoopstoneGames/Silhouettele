@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from db import get_pool
 from auth import get_current_user
 from datetime import datetime, timezone, timedelta
@@ -57,9 +57,11 @@ async def get_current_challenges(request: Request):
         "WHERE user_id = $1 AND puzzle_date = ANY($2)",
         user["user_id"], month_dates
     )
-    month_solved = len({r["puzzle_date"] for r in month_rows if r["is_correct"]})
-    month_total = len(month_rows)
-    month_avg = round(month_total / month_solved, 1) if month_solved > 0 else 0
+    solved_puzzle_dates = {r["puzzle_date"] for r in month_rows if r["is_correct"]}
+    month_solved = len(solved_puzzle_dates)
+    # Only count guesses from puzzles that were actually solved
+    month_solved_guesses = sum(1 for r in month_rows if r["puzzle_date"] in solved_puzzle_dates)
+    month_avg = round(month_solved_guesses / month_solved, 1) if month_solved > 0 else 0
 
     return {
         "weekly": {
@@ -89,6 +91,8 @@ async def get_current_challenges(request: Request):
 
 @router.get("/leaderboard")
 async def get_challenge_leaderboard(challenge_type: str = "weekly", request: Request = None):
+    if challenge_type not in ("weekly", "monthly"):
+        raise HTTPException(status_code=400, detail="challenge_type must be 'weekly' or 'monthly'")
     user = await get_current_user(request)
 
     if challenge_type == "weekly":

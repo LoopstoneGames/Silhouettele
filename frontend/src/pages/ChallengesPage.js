@@ -15,10 +15,12 @@ const ChallengeCard = ({ challenge }) => {
   const allComplete = challenge.goals.every((g) => g.complete);
 
   const goalProgress = (goal) => {
-    if (typeof goal.target === "number" && goal.target > 0) {
-      return Math.min(100, (goal.current / goal.target) * 100);
+    if (goal.complete) return 100;
+    if (typeof goal.target === "number" && goal.target > 0 && goal.current > 0) {
+      // Cap at 99 so an incomplete goal never shows a full bar
+      return Math.min(99, (goal.current / goal.target) * 100);
     }
-    return goal.complete ? 100 : 0;
+    return 0;
   };
 
   return (

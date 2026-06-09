@@ -39,9 +39,11 @@ export const Navbar = () => {
     >
       <div className="flex items-center gap-3 sm:gap-5">
         <Link to="/" className="flex items-center gap-2.5 group shrink-0" data-testid="nav-logo">
-          <span className="grid place-items-center h-9 w-9 rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30 group-hover:scale-105 transition-transform">
-            <Building2 className="w-5 h-5" strokeWidth={2.5} />
-          </span>
+          <img
+            src="/logo.svg"
+            alt="Silhouettele logo"
+            className="h-9 w-9 rounded-xl shadow-sm group-hover:scale-105 transition-transform"
+          />
           <span className="hidden sm:flex flex-col leading-none">
             <span className="font-heading font-black text-base tracking-tight">Silhouettele</span>
             <span className="font-technical text-[8px] uppercase tracking-[0.3em] text-muted-foreground">Loopstone Games</span>

@@ -1,0 +1,131 @@
+{
+  "global_philosophy": {
+    "theme": "Light & Dark Mode (Context-Dependent)",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) + Minimalist Game UI",
+    "description": "A reusable design system for Loopstone Games. The UI acts as a clean, distraction-free frame that heroizes the puzzle content (the silhouette). It borrows the soft bento cards from GeoGrid for stats, the friendly conversational warmth from Travle, and the focused layout from Doctordle. Clutter is aggressively eliminated, and typography carries the visual hierarchy.",
+    "core_principles": [
+      "Clap Space: Merge UI elements, eliminate redundant separators, keep HUD noise minimal.",
+      "Typography as UI: Let font weights and scales define structure rather than heavy borders or cards.",
+      "Feedback Clarity: Game states (correct, close, wrong) must be instantly readable and colorblind-friendly.",
+      "Studio DNA: Clean lines, subtle background textures, and consistent bento-box layouts that can be reused across all future Loopstone games."
+    ]
+  },
+  "typography": {
+    "font_families": {
+      "headings": "Outfit, sans-serif",
+      "body": "DM Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "hierarchy": {
+      "h1_title": "text-4xl sm:text-5xl font-black tracking-tighter",
+      "h2_section": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3_card": "text-xl font-semibold tracking-tight",
+      "body_large": "text-lg font-medium leading-relaxed",
+      "body_base": "text-base font-normal leading-relaxed",
+      "label_small": "text-xs font-bold uppercase tracking-[0.2em]"
+    },
+    "instructions": "Never use 'Inter' for headings. Use fluid typography scales. Ensure high contrast for all puzzle data (building names, distances)."
+  },
+  "colors": {
+    "light_mode": {
+      "background": "#F9F9F8",
+      "surface": "#FFFFFF",
+      "foreground": "#0F172A",
+      "foreground_muted": "#64748B",
+      "border": "#E2E8F0",
+      "primary": "#4F46E5",
+      "primary_foreground": "#FFFFFF",
+      "game_states": {
+        "correct": "#10B981",
+        "close": "#F59E0B",
+        "empty_slot": "#F1F5F9"
+      }
+    },
+    "dark_mode": {
+      "background": "#0B0F19",
+      "surface": "#151B2B",
+      "foreground": "#F8FAFC",
+      "foreground_muted": "#94A3B8",
+      "border": "#1E293B",
+      "primary": "#818CF8",
+      "primary_foreground": "#0F172A",
+      "game_states": {
+        "correct": "#10B981",
+        "close": "#F59E0B",
+        "empty_slot": "#1E293B"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "background_patterns": {
+      "light": "Subtle dotted grid overlay (`bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:linear-gradient(to_bottom,white,transparent)]`) to give a blueprint/technical feel.",
+      "dark": "Subtle dotted grid overlay (`bg-[radial-gradient(#1e293b_1px,transparent_1px)]`)"
+    },
+    "surfaces": {
+      "game_frame": "Crisp 1px border with no shadow to ensure focus stays on the silhouette.",
+      "bento_cards": "Soft neumorphic lifts for stat cards. Light mode: `shadow-sm border border-slate-200/50`. Dark mode: `border border-slate-800 bg-slate-900/50`."
+    },
+    "radii": {
+      "outer": "rounded-2xl",
+      "inner": "rounded-xl",
+      "button": "rounded-full"
+    }
+  },
+  "layout_and_spacing": {
+    "game_view": "Centered max-width column (`max-w-md mx-auto`). Minimalist stack: Silhouette -> Search Input -> 6 Guess Rows -> Progress Indicator.",
+    "stats_view": "Bento-box grid (`grid-cols-2 sm:grid-cols-4`). Dominant metrics (Win %, Current Streak) span 2 columns.",
+    "spacing_scale": "Generous spacing strategy. Use `gap-4` between guess rows, `gap-6` between major game sections, and `py-12` for container padding."
+  },
+  "motion_and_interactions": {
+    "libraries_required": ["framer-motion"],
+    "guess_reveal": "Staggered flip or slide-in animation for guess details (Name -> Emoji -> Distance).",
+    "win_celebration": "Satisfying pop (scale `1.05`, then back to `1`) on the correct guess row, with a slight ring highlight.",
+    "bento_hover": "Stat cards lift slightly (`-translate-y-1`) with enhanced shadow on hover.",
+    "transitions": "Use spring animations for layout changes (`type: 'spring', stiffness: 300, damping: 30`)."
+  },
+  "component_library_specs": {
+    "Navbar": {
+      "layout": "Sticky top, `backdrop-blur-xl bg-background/80`, 1px subtle bottom border. Flex space-between: Brand Logo (Left), Theme Toggle & Nav Links (Right).",
+      "brand": "Text-based or minimal geometric icon. Font: Outfit Black."
+    },
+    "SilhouetteFrame": {
+      "appearance": "Large square aspect ratio (`aspect-square`). Crisp borders, inner padding `p-4`, white/dark background. Image should be centered, black silhouette clearly contrasting.",
+      "interaction": "Pulse gently on first load."
+    },
+    "SearchAutocomplete": {
+      "input": "Large tap target (`h-14`). Magnifying glass icon. Border expands/highlights to `primary` on focus.",
+      "dropdown": "Absolute positioned, elevated (`shadow-xl`), max-height with custom scrollbar, highlighting matched substrings."
+    },
+    "GuessRow": {
+      "layout": "Flex row, items centered. Left: Building Name (truncate if long). Right: Direction Emoji + Distance.",
+      "states": {
+        "empty": "Subtle dashed or solid 1px border, transparent background.",
+        "filled": "Solid background matching theme's `surface`. Left text left-aligned, right data right-aligned."
+      }
+    },
+    "ProgressIndicator": {
+      "layout": "Minimalist text 'GUESS X / 6' centered below the rows, using `label_small` typography style. Progressively fills a subtle track line beneath the text."
+    },
+    "StatBentoCards": {
+      "layout": "Grid system. Large cards for 'Win Rate' and 'Streak'. Small cards for 'Played', 'Perfect'.",
+      "typography": "Huge numeric values (`h2_section`), tiny uppercase labels (`label_small`)."
+    },
+    "ResultShareModal": {
+      "layout": "Centered dialog. Displays building reveal (Name, Location, Fun Fact), large Win/Lose graphic, and a primary 'Share Board' button.",
+      "button": "Primary CTA, rounded-full, uses `primary` background. Hover: lighter hue."
+    }
+  },
+  "accessibility": {
+    "color_contrast": "Ensure all text against `background` and `surface` meets APCA/WCAG AA standards.",
+    "colorblind_mode": "Since direction emojis (⬆️, ↗️) and distance text are explicitly used instead of just colors, the game is naturally colorblind accessible. Emphasize the Target Emoji (🎯) for wins.",
+    "focus_states": "All interactive elements must have a visible `focus:ring-2 focus:ring-primary focus:ring-offset-2`."
+  },
+  "instructions_to_main_agent": [
+    "Install required dependencies: `framer-motion`, `lucide-react`, `@radix-ui/react-dialog`, `@radix-ui/react-popover`.",
+    "Apply the Google Fonts `Outfit` and `DM Sans` in the root HTML/CSS.",
+    "Implement the dotted background via Tailwind arbitrary values in the main layout wrapper.",
+    "Ensure all interactive components have `data-testid` attributes (e.g., `data-testid='guess-input'`).",
+    "Keep functionality identical to the user prompt. Do not invent new game mechanics. Focus entirely on applying this visual language to the React/Tailwind codebase.",
+    "Use standard `lucide-react` icons for UI elements, but rely on standard unicode emojis for the direction hints as specified."
+  ]
+}

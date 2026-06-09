@@ -6,7 +6,7 @@ import { puzzleAPI } from "@/lib/api";
 import { guessEmoji } from "@/lib/directions";
 import { logError } from "@/lib/logger";
 import { toast } from "sonner";
-import { Share2, Download, Copy, Loader2, MapPin } from "lucide-react";
+import { Share2, Download, Copy, Loader2 } from "lucide-react";
 
 const scoreLabel = (puzzle) =>
   puzzle.is_solved ? `${puzzle.guesses_used}/6` : "X/6";
@@ -139,17 +139,6 @@ export const ShareCardDialog = ({ open, onOpenChange, puzzle }) => {
                 />
               )}
             </div>
-
-            {/* Building name */}
-            {puzzle.building && (
-              <div className="text-center">
-                <p className="font-heading font-bold text-lg">{puzzle.building.name}</p>
-                <p className="flex items-center justify-center gap-1 text-xs" style={{ color: "#9aa0b5" }}>
-                  <MapPin className="w-3 h-3" />
-                  {puzzle.building.city}, {puzzle.building.country}
-                </p>
-              </div>
-            )}
 
             {/* Emoji guess grid */}
             <div className="flex items-center justify-center gap-1.5 text-2xl" data-testid="share-card-grid">

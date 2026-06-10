@@ -23,7 +23,7 @@ and the player has **6 guesses** to identify it. Every incorrect guess returns a
 |---|---|
 | Frontend | React 19, React Router 7, TailwindCSS, shadcn/ui, framer-motion, CRACO |
 | Backend | FastAPI (Python 3.11), asyncpg |
-| Database | Supabase **PostgreSQL** (RLS enabled; backend connects via service role) |
+| Database | Supabase **PostgreSQL** (RLS enabled, no client policies; backend connects via the direct Postgres connection — see §5.1) |
 | Auth | Supabase Auth — **Google OAuth** + email/password; **guest mode** via `X-Guest-ID` header |
 | Storage | Supabase Storage — 60 silhouette PNGs in public `silhouettes` bucket |
 | Hosting | **Frontend → Vercel**, **Backend → Railway**, DB/Auth/Storage → Supabase |
@@ -97,6 +97,44 @@ Supabase  ── PostgreSQL (RLS)
 | `guesses` | `id`, `user_id`, `puzzle_date`, `guess_building_id`, `is_correct`, `direction`, `distance_km` |
 | `friendships` | `id`, `user_id`, `friend_id`, `status` |
 | `user_stats` | `user_id`, `puzzles_played`, `puzzles_solved`, `current_streak`, `longest_streak` |
+
+### 5.1 Security model — RLS posture (do not change without reading this)
+
+All database access goes through the FastAPI backend, which authorizes every request at
+the application layer (`get_current_user` / `get_user_or_guest` in `auth.py`). The backend
+connects using the **direct Postgres connection string** (`SUPABASE_DB_URL`, the `postgres`
+role), which **bypasses RLS** and does not depend on `anon`/`authenticated` grants.
+
+Clients use Supabase **only for authentication** (to obtain a JWT). The frontend never calls
+the Supabase Data API (PostgREST) to read or write tables. The public `anon` key shipped in
+the frontend bundle must therefore have **zero** data access.
+
+The enforced posture on every table (`users`, `guesses`, `user_stats`, `friendships`,
+`achievement_notifications`, `buildings`) is:
+
+- **RLS enabled**, with **no policies** for `anon`/`authenticated` (RLS with no policy denies all rows).
+- **All privileges revoked** from `anon` and `authenticated` (defense in depth).
+
+> ⚠️ **Do not add permissive policies** (`USING (true)` / `WITH CHECK (true)`). They would
+> re-expose every table to anyone holding the public anon key, bypassing the backend
+> entirely. The Supabase Security Advisor flags these as "RLS Policy Always True." If you
+> ever need client-direct table access, design real per-row policies — `user_id` is a custom
+> string (`user_xxxx`), not `auth.uid()`; the auth UID maps to `users.supabase_uid`.
+
+Verify the posture anytime with:
+
+```sql
+select c.relname as "table", c.relrowsecurity as rls_enabled,
+  (select count(*) from pg_policies p where p.schemaname='public' and p.tablename=c.relname) as policy_count,
+  coalesce(string_agg(distinct g.privilege_type, ', '), '(none)') as anon_auth_privs
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+left join information_schema.role_table_grants g
+  on g.table_schema='public' and g.table_name=c.relname and g.grantee in ('anon','authenticated')
+where n.nspname='public'
+  and c.relname in ('users','guesses','user_stats','friendships','achievement_notifications','buildings')
+group by c.relname, c.relrowsecurity order by c.relname;
+-- Expect every row: rls_enabled=true, policy_count=0, anon_auth_privs=(none)
+```
 
 ---
 

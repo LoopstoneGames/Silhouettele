@@ -83,3 +83,16 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+import asyncio
+from fastapi.responses import JSONResponse
+
+@app.get("/health/db")
+async def health_db():
+    """Readiness check: confirms the API can reach Postgres.
+    Separate from /health, which Railway uses as its deploy healthcheck."""
+    try:
+        await asyncio.wait_for(get_pool().fetchval("SELECT 1"), timeout=5)
+        return {"status": "ok", "db": "ok"}
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "error", "db": "unreachable"})

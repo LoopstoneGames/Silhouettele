@@ -101,7 +101,6 @@ frontend/node_modules/.cache/default-development/4.pack
 
 # Project-local private/generated files
 memory/
-.emergent/
 .gitconfig
 silhouette_images/
 test_reports/

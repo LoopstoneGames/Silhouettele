@@ -9,7 +9,7 @@ Supabase (DB, Auth, Storage) is already hosted — you do **not** deploy it.
 ---
 
 ## Prerequisites
-- Code pushed to a GitHub repo (use the **"Save to GitHub"** button in the Emergent chat).
+- Code pushed to the GitHub repo (`LoopstoneGames/Silhouettele`). Vercel's free Hobby plan only deploys organisation repos that are **public**.
 - Railway account + Vercel account (you have both).
 - Your Supabase keys handy (already in `backend/.env` and `frontend/.env`).
 
@@ -83,5 +83,5 @@ Supabase (DB, Auth, Storage) is already hosted — you do **not** deploy it.
 
 ## Notes
 - `load_dotenv()` in the backend is harmless in production — when no `.env` file exists, values are read straight from Railway env vars.
-- Frontend production builds **exclude** the Emergent visual-edits and health-check tooling (they only load in dev), so the Vercel bundle is clean.
-- Free Railway/Supabase tiers may pause on inactivity; the first request after idle can be slow.
+- Free Railway/Supabase tiers may pause on inactivity; the first request after idle can be slow. Supabase pauses a free project after about a week of low activity, which takes the whole game down while `/health` still answers "ok". Point an uptime monitor at `/health/db` (it runs `SELECT 1` and returns 503 if Postgres is unreachable) so the database never idles and an outage raises an alert.
+- `/health` is deliberately a liveness probe only. Railway's deploy healthcheck uses it, so a database blip never blocks a deploy.

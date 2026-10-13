@@ -5,6 +5,7 @@ attractive, daily-refreshing card in Twitter/Discord/Slack/iMessage etc.
 """
 import asyncio
 import io
+from functools import lru_cache
 
 import httpx
 from fastapi import APIRouter, Response
@@ -15,7 +16,18 @@ from data.buildings import SILHOUETTE_URLS
 
 router = APIRouter(prefix="/og", tags=["og"])
 
-_FONT_DIR = "/usr/share/fonts/truetype/liberation"
+# System fonts are tried in order. Railway's build image ships none of them,
+# so the last resort is Pillow's bundled font, which always exists.
+_FONT_CANDIDATES = {
+    True: [
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ],
+    False: [
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ],
+}
 _INDIGO = (99, 102, 241)
 _MUTED = (154, 160, 181)
 _WIDTH, _HEIGHT = 1200, 630
@@ -25,9 +37,14 @@ _CACHE: dict[str, bytes] = {}
 _RENDER_LOCK = asyncio.Lock()
 
 
+@lru_cache(maxsize=None)
 def _font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
-    name = "LiberationSans-Bold.ttf" if bold else "LiberationSans-Regular.ttf"
-    return ImageFont.truetype(f"{_FONT_DIR}/{name}", size)
+    for path in _FONT_CANDIDATES[bold]:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=size)
 
 
 def _gradient(top: tuple, bottom: tuple) -> Image.Image:

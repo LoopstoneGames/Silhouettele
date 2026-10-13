@@ -36,10 +36,10 @@ export const CHANGELOG = [
   },
   {
     date: "2026-06-09",
-    title: "Challenge a Friend",
+    title: "Weekly & Monthly Challenges",
     body: [
-      "You can now challenge your friends to a head-to-head and see who knows their skylines best. 🏙️",
-      "Find it in the Challenges tab.",
+      "There's now a new challenge every week and every month: solve all seven puzzles in a week, or twenty in a month while averaging three guesses or fewer. 🏙️",
+      "Each challenge has its own leaderboard. Find it in the Challenges tab.",
       "— Loopstone Games",
     ],
   },

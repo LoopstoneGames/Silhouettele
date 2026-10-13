@@ -39,7 +39,7 @@ export const GuestSigninPrompt = ({ show, stats }) => {
               <p className="text-sm text-muted-foreground">
                 {stats.current_streak > 0
                   ? "Secure your streak, earn badges, and compete with friends."
-                  : "Track streaks, earn badges, compete on leaderboards, and challenge friends."}
+                  : "Track streaks, earn badges, compete on leaderboards, and add friends."}
               </p>
             </div>
             <Button

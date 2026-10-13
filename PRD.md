@@ -25,7 +25,7 @@ and the player has **6 guesses** to identify it. Every incorrect guess returns a
 | Backend | FastAPI (Python 3.11), asyncpg |
 | Database | Supabase **PostgreSQL** (RLS enabled, no client policies; backend connects via the direct Postgres connection — see §5.1) |
 | Auth | Supabase Auth — **Google OAuth** + email/password; **guest mode** via `X-Guest-ID` header |
-| Storage | Supabase Storage — 60 silhouette PNGs in public `silhouettes` bucket |
+| Storage | Supabase Storage — 114 silhouette PNGs in public `silhouettes` bucket (one per building) |
 | Hosting | **Frontend → Vercel**, **Backend → Railway**, DB/Auth/Storage → Supabase |
 | Domain | `silhouettele.cc` (Namecheap) → www on Vercel, `api.` on Railway |
 
@@ -198,26 +198,119 @@ REACT_APP_SUPABASE_ANON_KEY=<anon key>
 
 ---
 
-## 9. Suggested Next Steps
+## 9. Development Roadmap & Priorities
 
-**P1 — Monetization (Stripe "Silhouettele Premium")**
-- Monthly subscription; gate the **Past Puzzles archive** as the first premium perk.
-- One-time purchases (e.g. extra guesses, hint reveals).
+> **Revised June 2026** after a structured priority review (LLM Council, 5 perspectives + peer
+> review). The earlier ordering led with **monetization**; that was judged backwards by every
+> perspective. The corrected thesis is **measure → secure content & freshness → retention &
+> first-run UX → *then* monetize**. Rationale and the demoted items are kept below so the
+> reasoning survives, not just the conclusion.
 
-**P1 — Auth polish**
-- Brand the Google consent screen (App name + logo; publish to Production) so it reads "Silhouettele" instead of the Supabase project URL. (Optional: Supabase Custom Domain for `auth.silhouettele.cc`.)
+### Guiding principle
+
+Silhouettele is a **daily-habit** game; its only core promise is *"come back tomorrow — there's a
+fresh one."* Every candidate is judged against two questions: **(1)** does it protect the daily
+habit, and **(2)** can we tell whether it worked? Today we cannot answer (2) at all — there is
+**no analytics** — which makes every other call a guess. That gates the whole roadmap.
+
+### Current reality check (verified against code, June 2026)
+
+- **Shipped:** daily puzzle, guest mode, Google + email auth, friends, daily/all-time/friends
+  leaderboards, achievements, weekly/monthly challenges (each with its own leaderboard),
+  past-puzzles archive, Wordle-style share strings, **server-rendered Open Graph cards**
+  (`backend/routes/og.py`), player-facing changelog (`/changelog`), light/dark themes, mobile
+  responsive. *(Note: OG cards, previously listed here as future P2, are already live. A
+  head-to-head "challenge a friend" is **not** built: `routes/challenges.py` serves only the
+  weekly/monthly challenges and their leaderboard.)*
+- **Content:** **114 buildings, all 114 with silhouettes** (`backend/data/buildings.py`;
+  verified `len(BUILDINGS) == len(SILHOUETTE_URLS) == 114`, zero gaps). ≈ **3.7 months** of
+  distinct inventory at one puzzle/day. *(Supersedes the old "60 silhouette PNGs" figure.)*
+- **Selection is a stateless hash, not a schedule:** `get_daily_building_id` =
+  `md5("silhouettele-"+date) % len(BUILDINGS)` (`backend/utils.py:42`). It picks **with
+  replacement and no de-duplication**, so the same building recurs by random collision within
+  **~2 weeks** (birthday paradox) while ~100 others stay unseen. The `daily_puzzles` table exists
+  in the schema (§5) but is **unused** by the puzzle route (`routes/puzzle.py` calls the hash
+  directly) — a ready-made hook for real scheduling.
+- **Not built:** any **analytics** (no PostHog/Plausible/GA — zero data on DAU, retention,
+  funnel); any **monetization** (no payment code or routes exist); head-to-head challenges;
+  streak reminders; PWA; admin/content tooling.
+
+### Phase 0 — Instrument (this week, ~½–1 day) — do this first
+
+Without usage data, every item below — including this roadmap — is unfalsifiable.
+- Add **privacy-friendly analytics**. **Plausible** preferred (cookieless → sidesteps most
+  GDPR/cookie-consent overhead); **PostHog** if you want funnels and session insight.
+- Instrument the core funnel: visit → puzzle started → guess submitted → solved/failed →
+  share clicked → guest → sign-up.
+- **Define the monetization decision-gate now**, as a trigger not a vibe — e.g. *"open Stripe
+  work only once we sustain ≥ N DAU at ≥ X% D7 retention."* Fill in N / X after the first week
+  of data lands.
+
+### Phase 1 — Protect content & freshness (1–2 weeks) — the existential one
+
+A daily game that silently repeats trains its most engaged players (the ones who notice first)
+to leave. Two distinct problems: **random repeats now**, and **finite runway soon**.
+- **Switch selection to a real schedule.** Populate and read the existing `daily_puzzles` table
+  so each date maps to a curated, **non-repeating** building until the pool is exhausted; retire
+  the stateless hash for live selection. This kills the "repeat within 2 weeks" bug and gives
+  control over ordering (and themed weeks later).
+- **Build a content-loading script** (a small CLI, **not** a full admin UI — that's the
+  multi-week time-sink; defer it). Input an image + `name / aliases / lat / lng / city /
+  country / year_built / height_m / fun_fact`; it uploads the PNG to Supabase Storage and
+  appends the record. ⚠️ The hint engine needs **lat/lng per building**, so "just drop a PNG" is
+  insufficient — the metadata is the real work.
+- **Extend the runway** toward 6–12 months by bulk-adding buildings. Watch two risks:
+  **image/silhouette licensing** (sourcing imagery at scale) and **silhouette quality**
+  (ambiguous/unfair silhouettes wreck the first-run experience).
+- *Stop-gap if pressed:* with proper scheduling, controlled reuse on a long cycle is acceptable
+  (Wordle reuses answers) — the bug today is **random** repeats, not reuse per se.
+
+### Phase 2 — Retention & first-run clarity (weeks 3–4)
+
+Acquisition is wasted if first-time players bounce or solvers don't return.
+- **Nail the new-player "aha" in ~5 seconds.** Make the rules instantly legible: what the
+  direction/distance refers to (the building's real-world location) and what counts as a correct
+  answer (building name vs city).
+- **Guarantee a satisfying reveal on a loss** (show the building + its `fun_fact`) so failing
+  still rewards a return visit.
+- **One retention hook:** streak-reminder email via **Resend** — but build it *after* analytics
+  confirm people return, so you're amplifying a real curve, not an imagined one.
+
+### Phase 3 — Monetize from leverage (month 2–3, only if the gate is met)
+
+- Build Stripe **only once Phase 0 data proves a returning audience** worth charging.
+- **Do not gate the past-puzzles archive.** It is the buffer against the content shortage, so
+  paywalling it accelerates churn at the worst possible moment ("taxing the exit").
+- Prefer monetizing **strength, not the exit**: cosmetics/themes, a supporter/tip tier, gifting,
+  or **sponsored themed weeks** (e.g. a tourism board sponsoring a "Wonders of the World" week).
+- **Brand the Google consent screen here** (so it reads "Silhouettele", not the Supabase URL;
+  publish to Production). This polish matters most at the moment you ask for money — it was
+  previously mis-prioritised as a standalone P1.
+
+### Back-pocket upside (don't chase yet)
+
+The silhouette + compass-triangulation loop **generalises** beyond buildings (flags, landmarks,
+logos, skylines) — a genuine franchise option. But peer review flagged expanding verticals
+before proving day-2 retention as **premature scaling**. The cheap, on-brand version is **themed
+weeks using the buildings you already have**, unlocked for free by Phase 1's scheduler.
+
+### Still-valid engineering hygiene (low priority, do opportunistically)
+
+- Local JWT verification with `SUPABASE_JWT_SECRET` to drop the per-request call to Supabase
+  `/auth/v1/user` (lower latency).
+- Remove stale `MONGO_URL` / `DB_NAME` env vars from the backend (unused post-migration).
 - Add `https://silhouettele.cc` to `CORS_ORIGINS` alongside the `www` host.
 
-**P2 — Engagement & retention**
-- "Send a hint to a friend" / challenge a friend on today's puzzle.
-- Daily streak reminders (email via Resend, or web push).
-- Result-sharing with an image card (Open Graph) for social virality.
+### Sequence at a glance
 
-**P3 — Platform**
-- PWA (installable on mobile, offline daily puzzle cache).
-- Analytics (e.g. Plausible/PostHog) for funnel + retention.
-- Admin tooling to curate/schedule daily puzzles and add new buildings.
+| # | Phase | Effort | Gate |
+|---|---|---|---|
+| 0 | Analytics + decision-gate | ½–1 day | — (do now) |
+| 1 | Scheduled non-repeating selection + content loader + more buildings | 1–2 wks | — (existential) |
+| 2 | First-run clarity + loss reveal + streak email | 1–2 wks | streak email waits on Phase 0 retention data |
+| 3 | Stripe — cosmetics/supporter/sponsorship, **not** archive-gating | 1–2 wks | only once DAU/retention gate is met |
 
-**Nice-to-haves**
-- Local JWT verification with `SUPABASE_JWT_SECRET` to remove the per-request call to Supabase `/auth/v1/user` (lower latency).
-- Remove stale `MONGO_URL` / `DB_NAME` from backend env (unused post-migration).
+> **Why monetization moved last:** you cannot price a subscription for an audience you can't
+> measure, the obvious first perk (the archive) is exactly the wrong thing to gate, and the daily
+> habit must be protected before it's worth charging for. Revenue is captured *from* a habit —
+> build the habit's foundations first.

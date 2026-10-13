@@ -1,5 +1,7 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from db import init_db, close_db, get_pool
 from data.buildings import BUILDINGS, SILHOUETTE_URLS
@@ -84,8 +86,6 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
-import asyncio
-from fastapi.responses import JSONResponse
 
 @app.get("/health/db")
 async def health_db():

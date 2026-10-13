@@ -77,7 +77,7 @@ over a direct Postgres connection. See [Security model](#security-model).
 
 ```
 backend/
-├── server.py          FastAPI app, /api router, CORS, /health
+├── server.py          FastAPI app, /api router, CORS, /health + /health/db
 ├── db.py              asyncpg connection pool → Supabase Postgres
 ├── auth.py            get_current_user / get_user_or_guest
 ├── utils.py           bearing and distance maths
@@ -139,6 +139,7 @@ Never commit real values. Production secrets live in the Railway and Vercel envi
 
 ```bash
 cd backend
+pip install -r requirements-dev.txt   # runtime deps + pytest
 
 # Unit tests, which need no server: bearing/distance maths and building search
 pytest tests/test_directions.py tests/test_search.py
@@ -169,6 +170,11 @@ so the public key shipped in the frontend bundle gives no access to the data at 
   while distances stay great-circle for accuracy. This is locked in by `backend/tests/test_directions.py`.
 - **Migrated MongoDB → Supabase PostgreSQL.** Friendships, leaderboards and stats are relational data,
   and the document model kept getting in the way. The application no longer has any MongoDB code.
+- **Liveness and readiness are separate checks.** On 11 Oct 2026 Supabase paused the free-tier
+  database after a quiet week. The game was down, but `/health` kept answering "ok" because it only
+  proved the process was running. `/health` stays a plain liveness probe, so Railway's deploy
+  healthcheck never fails on a database blip, and `/health/db` runs `SELECT 1` against Postgres
+  for an external uptime monitor, which both raises the alarm and stops the database idling.
 - **Guest-first design.** There's no signup wall: a first-time visitor plays immediately through an
   `X-Guest-ID` header, with stats kept in `localStorage`. An account is an upgrade, not a requirement.
 - **Measure before monetising.** The original plan started with monetisation. I reordered it to
